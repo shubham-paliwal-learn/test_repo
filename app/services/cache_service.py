@@ -75,8 +75,7 @@ class CacheService:
                 self._client = client
                 self._backend = "redis"
             except Exception as exc:  # pragma: no cover - environment dependent
-                if current_app.debug or True:
-                    print(f"[cache] Redis unavailable ({exc}); using in-memory fallback.")
+                print(f"[cache] Redis unavailable ({exc}); using in-memory fallback.")
                 self._client = None
                 self._backend = "memory"
         else:

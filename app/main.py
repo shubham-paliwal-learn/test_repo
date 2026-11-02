@@ -59,7 +59,11 @@ def create_app(config_object: type | str | None = None) -> Flask:
     _register_scheduled_jobs(app)
 
     with app.app_context():
-        import app.models  # noqa: F401  ensure every model is registered
+        # NOTE: bind to a different name -- plain ``import app.models`` rebinds the
+        # local variable ``app`` to the *package* module, so the function would end
+        # up returning that module instead of the Flask object
+        # (AttributeError: module 'app' has no attribute 'test_client' / 'route').
+        import app.models as tma_models  # noqa: F401  ensure every model is registered
 
         db.create_all()          # programmatic database creation (no manual DB tools)
         _bootstrap_admin()       # exactly one pre-existing admin

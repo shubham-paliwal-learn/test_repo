@@ -3,20 +3,30 @@
 Usage:
     python run.py                 # http://127.0.0.1:5000  (API + Vue UI)
     FLASK_CONFIG=production TMA_SECRET_KEY=... python run.py
+
+NOTE: the application object is called ``trekking_app`` on purpose -- a name of
+``app`` would shadow the ``app`` *package* imported from ``app.main`` and break
+every later ``from app.xxx import ...`` with
+``AttributeError: module 'app' has no attribute ...``.
 """
 import os
 
-from app.main import create_app
+from dotenv import load_dotenv
 
-app = create_app()
+# Load .env (values already exported in the shell keep priority).
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
+from app.main import create_app  # noqa: E402  (import after env is loaded)
+
+trekking_app = create_app()
 
 
-@app.route("/")
+@trekking_app.route("/")
 def home():
     """Serve the Vue SPA (built with the Vite CLI, or the dev-source build)."""
     candidates = [
-        os.path.join(app.root_path, "..", "frontend", "dist", "index.html"),
-        os.path.join(app.root_path, "..", "frontend", "public", "index.html"),
+        os.path.join(trekking_app.root_path, "..", "frontend", "dist", "index.html"),
+        os.path.join(trekking_app.root_path, "..", "frontend", "public", "index.html"),
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -27,7 +37,7 @@ def home():
     )
 
 
-@app.route("/health")
+@trekking_app.route("/health")
 def health():
     from app.services.cache_service import cache
 
@@ -37,4 +47,4 @@ def health():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_DEBUG", "1") not in ("0", "false", "False")
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    trekking_app.run(host="0.0.0.0", port=port, debug=debug)

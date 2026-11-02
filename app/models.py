@@ -64,8 +64,14 @@ class User(TimestampMixin, db.Model):
     bookings = db.relationship(
         "Booking", back_populates="user", lazy="dynamic", cascade="all, delete-orphan"
     )
+    # staff_assignments has two FKs into ``users`` (staff_id + assigned_by),
+    # so foreign_keys must be stated explicitly or SQLAlchemy cannot resolve the join.
     assignments = db.relationship(
-        "StaffAssignment", back_populates="staff", lazy="dynamic", cascade="all, delete-orphan"
+        "StaffAssignment",
+        back_populates="staff",
+        foreign_keys="StaffAssignment.staff_id",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
     )
 
     def set_password(self, raw_password: str) -> None:
@@ -137,6 +143,12 @@ class Trek(TimestampMixin, db.Model):
     support_staff = db.relationship(
         "User", secondary=trek_staff_assoc, backref="supporting_treks", lazy="subquery"
     )
+    assignments = db.relationship(
+        "StaffAssignment",
+        back_populates="trek",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     @property
     def booked_count(self) -> int:
@@ -184,8 +196,15 @@ class StaffAssignment(db.Model):
     assigned_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     role_label = db.Column(db.String(40), default="Lead")
 
+    # ``treks`` has no other FK from staff_assignments, so the join is unambiguous.
     trek = db.relationship("Trek", back_populates="assignments")
-    staff = db.relationship("User", back_populates="assignments")
+    # ``users`` is reachable via two FKs (staff_id, assigned_by) -> state foreign_keys.
+    staff = db.relationship(
+        "User",
+        foreign_keys=[staff_id],
+        back_populates="assignments",
+    )
+    assigned_by_user = db.relationship("User", foreign_keys=[assigned_by])
 
     __table_args__ = (db.UniqueConstraint("trek_id", "staff_id", name="uq_trek_staff"),)
 

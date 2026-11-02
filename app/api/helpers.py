@@ -14,6 +14,15 @@ class ValidationError(Exception):
         self.fields = fields or {}
 
 
+class NotFoundError(Exception):
+    def __init__(self, message: str = "Resource not found.", status: int = 404,
+                 fields: dict | None = None):
+        super().__init__(message)
+        self.message = message
+        self.status = status
+        self.fields = fields or {}
+
+
 def success_response(data=None, message: str = "OK", status: int = 200, extra: dict | None = None):
     payload = {"success": True, "message": message, "data": data}
     if extra:
