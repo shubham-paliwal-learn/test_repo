@@ -1,0 +1,27 @@
+:root {
+  --tma-green: #1f6f43;
+  --tma-dark: #143d29;
+}
+
+body { min-height: 100vh; background: #f4f6f4; }
+
+.navbar-brand .brand-icon { font-size: 1.35rem; margin-right: .35rem; }
+.tma-navbar { background: linear-gradient(90deg, var(--tma-dark), var(--tma-green)); }
+.tma-navbar .nav-link.active { background: rgba(255,255,255,.16); border-radius: .5rem; }
+
+.stat-card { border: 0; border-radius: 1rem; box-shadow: 0 2px 10px rgba(20, 61, 41, .08); }
+.stat-card .stat-value { font-size: 1.9rem; font-weight: 700; color: var(--tma-dark); }
+.stat-card .stat-label { text-transform: uppercase; letter-spacing: .04em; font-size: .75rem; color: #6c757d; }
+
+.trek-card { transition: transform .12s ease, box-shadow .12s ease; border-radius: 1rem; overflow: hidden; }
+.trek-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(20, 61, 41, .15); }
+.difficulty-badge.easy { background: #d1e7dd; color: #0f5132; }
+.difficulty-badge.moderate { background: #fff3cd; color: #664d03; }
+.difficulty-badge.hard { background: #f8d7da; color: #842029; }
+
+.slot-bar { height: .5rem; }
+.auth-hero { background: radial-gradient(circle at top left, #1f6f43, #0b2b1c); color: #fff; border-radius: 1.25rem; }
+.table-responsive { border-radius: .75rem; }
+.notif-dot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #dc3545; }
+.cursor-pointer { cursor: pointer; }
+footer.app-footer { color: #6c757d; font-size: .85rem; }
