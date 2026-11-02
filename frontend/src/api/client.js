@@ -97,7 +97,7 @@ export const api = {
   // ---- bookings ---------------------------------------------------------
   bookTrek: (payload) => request('/api/bookings/', { method: 'POST', body: payload }),
   myBookings: (params) => request('/api/bookings/my', { params }),
-  allBookings: (params) => request('/api/bookings/', { params }),
+  allBookings: (params) => request('/api/admin/all-bookings', { params }),
   cancelBooking: (id) => request(`/api/bookings/${id}/cancel`, { method: 'PATCH', body: {} }),
   setBookingStatus: (id, payload) => request(`/api/bookings/${id}/status`, { method: 'PATCH', body: payload }),
   payBooking: (id, payload) => request(`/api/bookings/${id}/payment`, { method: 'PATCH', body: payload }),
@@ -114,6 +114,7 @@ export const api = {
   updateStaff: (id, payload) => request(`/api/admin/staff/${id}`, { method: 'PUT', body: payload }),
   setStaffStatus: (id, payload) => request(`/api/admin/staff/${id}/status`, { method: 'PATCH', body: payload }),
   adminUsers: (params) => request('/api/admin/users', { params }),
+  userDetail: (id) => request(`/api/admin/users/${id}`),
   setUserStatus: (id, payload) => request(`/api/admin/users/${id}/status`, { method: 'PATCH', body: payload }),
   adminAssignments: (params) => request('/api/admin/assignments', { params }),
   adminSearch: (q) => request('/api/admin/search', { params: { q } }),

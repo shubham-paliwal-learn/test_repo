@@ -6,7 +6,7 @@ staff-centric read endpoints used by the UI.
 """
 from datetime import date
 
-from flask import Blueprint, g, request
+from flask import Blueprint, current_app, g, request
 
 from app.api.helpers import paginate, success_response
 from app.extensions import db
@@ -53,7 +53,9 @@ def dashboard():
         }
 
     key = f"stats:staff:{user.id}"
-    data = cache.memoize(key, producer, ttl=60,
+    # staff dashboard is cached under the "stats:" prefix so any booking/trek
+    # mutation invalidates it through the admin stats invalidation path.
+    data = cache.memoize(key, producer, ttl=int(current_app.config.get("CACHE_TTL_SECONDS", 60)),
                          force_refresh=(request.args.get("refresh") or "").lower() in ("1", "true"))
     return success_response(data, "Staff dashboard loaded")
 
