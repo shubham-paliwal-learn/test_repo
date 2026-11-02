@@ -26,12 +26,14 @@ class Config:
     CACHE_PREFIX = "tma"
 
     # --- Celery / Redis broker --------------------------------------------------
-    CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", REDIS_URL)
-    CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", REDIS_URL)
+    CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 
     # --- Mail (monthly report / reminders) --------------------------------------
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "localhost")
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "1025"))
+    MAIL_USE_SSL = os.environ.get("MAIL_USE_SSL", "false").lower() == "true"
+    MAIL_SUPPRESS_SEND = os.environ.get("MAIL_SUPPRESS_SEND", "false").lower() == "true"
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "false").lower() == "true"
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
@@ -40,8 +42,17 @@ class Config:
 
     # --- Google Chat webhook (daily reminders) ----------------------------------
     GCHAT_WEBHOOK_URL = os.environ.get("GCHAT_WEBHOOK_URL", "")
+    SMS_GATEWAY_URL = os.environ.get("SMS_GATEWAY_URL", "")
+
+    # --- Scheduled job hours (Celery beat) ------------------------------------
+    REMINDER_HOUR = int(os.environ.get("REMINDER_HOUR", "7"))
+    REPORT_HOUR = int(os.environ.get("REPORT_HOUR", "8"))
+    CELERY_TIMEZONE = os.environ.get("CELERY_TIMEZONE", "Asia/Kolkata")
 
     # --- Pre-existing admin (created programmatically, no registration) --------
+    # --- Booking export (Celery task) -----------------------------------------
+    EXPORT_DIR = os.environ.get("EXPORT_DIR", os.path.join(BASE_DIR, "instance", "exports"))
+
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Admin@123")
     ADMIN_EMAIL_BOOTSTRAP = os.environ.get("ADMIN_EMAIL", "admin@trekking.local")
@@ -55,4 +66,5 @@ class TestConfig(Config):
     REDIS_URL = ""  # forces in-process fallback cache during tests
     CELERY_BROKER_URL = "memory://"
     CELERY_RESULT_BACKEND = "cache+memory://"
+    MAIL_SUPPRESS_SEND = True
     WTF_CSRF_ENABLED = False

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, g, request
 
 from app.api.helpers import (
+    NotFoundError,
     ValidationError,
     clean_string,
     commit,
@@ -30,13 +31,6 @@ from app.services.auth import admin_or_staff_required, login_required
 from app.services.cache_service import cache
 
 bookings_bp = Blueprint("bookings", __name__, url_prefix="/api/bookings")
-
-
-class NotFoundError(Exception):
-    def __init__(self, message: str, status: int = 404):
-        super().__init__(message)
-        self.message = message
-        self.status = status
 
 
 def _invalidate_trek_caches(trek_id: int | None = None) -> None:

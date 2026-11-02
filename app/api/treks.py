@@ -30,9 +30,12 @@ from app.models import (
     Trek,
     User,
 )
+from app.api.helpers import NotFoundError
 from app.services.auth import admin_or_staff_required, admin_required, login_required, staff_required
 from app.services.cache_service import cache
 
+# ``ValidationError`` and ``NotFoundError`` are imported from helpers so the
+# application-wide error handlers produce consistent JSON responses.
 treks_bp = Blueprint("treks", __name__, url_prefix="/api/treks")
 
 CACHE_LIST_PREFIX = "treks:list"
@@ -106,13 +109,6 @@ def _apply_filters(query):
     return query.order_by(order, Trek.id)
 
 
-class NotFoundError(Exception):
-    def __init__(self, message: str, status: int = 404):
-        super().__init__(message)
-        self.message = message
-        self.status = status
-
-
 def _get_trek_or_404(trek_id: int) -> Trek:
     trek = db.session.get(Trek, trek_id)
     if trek is None:
@@ -133,6 +129,14 @@ def _ensure_manageable(trek: Trek) -> None:
     user = g.current_user
     if not _is_manageable(trek, user):
         raise ValidationError("You are not assigned to manage this trek.", status=403)
+
+
+def _sync_slot_capacity(trek: Trek) -> None:
+    """Keep ``available_slots`` consistent with the confirmed bookings."""
+    booked = trek.booked_count
+    if trek.total_slots < booked:
+        trek.total_slots = booked
+    trek.available_slots = max(trek.total_slots - booked, 0)
 
 
 # ------------------------------------------------------------------ read APIs
@@ -383,8 +387,10 @@ def update_trek(trek_id: int):
     for attr, value in fields.items():
         setattr(trek, attr, value)
 
-    if new_total is not None:
-        trek.available_slots = max(new_total - booked, 0)
+    if "status" in fields and fields["status"] == TREK_OPEN and trek.assigned_staff_id is None:
+        raise ValidationError("Assign a staff member before opening the trek for bookings.")
+    if "total_slots" in fields:
+        _sync_slot_capacity(trek)
 
     commit()
     _invalidate_trek_cache(trek.id)
@@ -421,7 +427,7 @@ def update_slots(trek_id: int):
         raise ValidationError(f"Total slots cannot be lower than confirmed bookings ({booked}).",
                               fields={"total_slots": f"Minimum {booked}"})
     trek.total_slots = total
-    trek.available_slots = total - booked
+    _sync_slot_capacity(trek)
     commit()
     _invalidate_trek_cache(trek_id)
     return success_response(trek.to_dict(), "Slots updated successfully")
