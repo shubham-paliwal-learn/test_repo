@@ -465,7 +465,7 @@ def global_search():
                                      db.func.lower(User.email).like(like))).limit(10).all()
     treks = Trek.query.filter(db.or_(db.func.lower(Trek.name).like(like),
                                      db.func.lower(Trek.location).like(like),
-                                     db.func.lower(db.coalesce(Trek.region, "")).like(like))).limit(10).all()
+                                     db.func.lower(db.func.coalesce(Trek.region, "")).like(like))).limit(10).all()
 
     return success_response({
         "query": term,

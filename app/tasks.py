@@ -52,6 +52,9 @@ celery_app.conf.update(
     result_expires=60 * 60 * 24,
     broker_connection_retry_on_startup=True,
     task_always_eager=False,
+    # Never block the API process waiting on a (possibly absent) Redis backend.
+    redis_socket_connect_timeout=1,
+    redis_socket_timeout=2,
 )
 
 TASK_BY_JOB = {
@@ -103,6 +106,16 @@ class JobRecorder:
             run.detail = (detail or "")[:1000]
             run.finished_at = datetime.utcnow()
             db.session.commit()
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        if exc_type is None:
+            return False
+        # Record the failure and let it propagate to Celery's retry machinery.
+        try:
+            self.finish("failed", str(exc_val))
+        except Exception:  # pragma: no cover - best effort logging
+            logger.exception("JobRecorder could not persist failure for %s", self.name)
+        return False
 
 
 # ------------------------------------------------------------------ utilities
@@ -240,6 +253,13 @@ def export_booking_history(self, user_id: int):
         if user is None:
             raise ValueError(f"User {user_id} does not exist")
 
+        # ``self.request.id`` only exists when the task ran through a Celery
+        # worker; inline execution (no broker) falls back to a generated id.
+        try:
+            task_id = self.request.id
+        except Exception:  # pragma: no cover - inline shim path
+            task_id = f"inline-{date.today().isoformat()}-{user_id}"
+
         export_dir = _export_dir()
         os.makedirs(export_dir, exist_ok=True)
         filename = f"booking_history_{user.username}_{date.today().isoformat()}.csv"
@@ -282,7 +302,7 @@ def export_booking_history(self, user_id: int):
             title="Booking history exported",
             message=(
                 f"Your trekking history CSV ({len(query)} row(s)) is ready. "
-                f"Download it from the History page or via /api/bookings/download/{self.request.id}."
+                f"Download it from the History page or via /api/bookings/download/{task_id}."
             ),
             category="export",
         ))
@@ -293,7 +313,7 @@ def export_booking_history(self, user_id: int):
             "rows": len(query),
             "path": path,
             "filename": filename,
-            "task_id": self.request.id,
+            "task_id": task_id,
         }
 
 
@@ -338,12 +358,14 @@ def run_job_inline(job_name: str) -> dict:
 
 
 def _inline_shim(task, *args, **kwargs):
-    """Execute a bound Celery task without a broker."""
-    class _Request:
-        id = f"inline-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    """Execute a Celery task synchronously (without a broker).
 
-    task.request = _Request()  # type: ignore[attr-defined]
-    return task(*args, **kwargs)
+    ``task.request`` is a proxy property on the shared task object and cannot be
+    assigned to, so we call the plain function through ``task.run`` instead.
+    Tasks must therefore avoid touching ``self.request.id``; they generate their
+    own inline identifiers when needed.
+    """
+    return task.run(*args, **kwargs)
 
 
 def _install_run_inline():
